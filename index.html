@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Green Checkout · Eco-Coin Grove</title>
+<style>
+  :root {
+    --bg: #0b1a14;
+    --panel: rgba(255,255,255,0.04);
+    --panel-border: rgba(160,255,200,0.12);
+    --leaf: #5be38f;
+    --leaf-dim: #2f8f5c;
+    --gold: #ffd36b;
+    --text: #e8f5ee;
+    --muted: #8aa89a;
+    --danger: #ff7a7a;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Segoe UI", system-ui, sans-serif;
+    color: var(--text);
+    background:
+      radial-gradient(1200px 600px at 10% -10%, #164a33 0%, transparent 60%),
+      radial-gradient(900px 500px at 110% 110%, #0f3b2a 0%, transparent 60%),
+      var(--bg);
+    min-height: 100vh;
+  }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 28px 18px 60px; }
+  header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 22px; }
+  .brand { display: flex; align-items: center; gap: 12px; }
+  .brand-mark {
+    width: 42px; height: 42px; border-radius: 14px;
+    background: linear-gradient(135deg, var(--leaf), var(--leaf-dim));
+    display: grid; place-items: center; font-size: 22px;
+    box-shadow: 0 0 24px rgba(91,227,143,0.35);
+  }
+  .brand h1 { margin: 0; font-size: 20px; }
+  .brand p { margin: 2px 0 0; font-size: 12px; color: var(--muted); }
+  .nav-btn {
+    padding: 10px 16px; border-radius: 999px; cursor: pointer;
+    background: rgba(255,211,107,0.12); color: var(--gold);
+    border: 1px solid rgba(255,211,107,0.3); font-size: 14px; font-weight: 600;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .nav-btn.ghost { background: transparent; color: var(--text); border-color: var(--panel-border); font-weight: 500; }
+  .badge {
+    background: var(--gold); color: #2a1a00; border-radius: 999px;
+    min-width: 22px; height: 22px; padding: 0 6px; display: inline-grid; place-items: center; font-size: 12px;
+  }
+  .panel {
+    background: var(--panel); border: 1px solid var(--panel-border);
+    border-radius: 22px; padding: 22px;
+  }
+  .panel h2 {
+    margin: 0 0 14px; font-size: 13px; text-transform: uppercase;
+    letter-spacing: 1.6px; color: var(--muted); font-weight: 600;
+  }
+  .view { display: none; }
+  .view.active { display: block; }
+
+  /* Shop */
+  .search {
+    width: 100%; padding: 11px 14px; border-radius: 12px; margin-bottom: 14px;
+    border: 1px solid var(--panel-border); background: rgba(0,0,0,0.25);
+    color: var(--text); font-size: 14px; outline: none;
+  }
+  .search:focus { border-color: var(--leaf); }
+  .cats { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+  .cat {
+    padding: 7px 13px; border-radius: 999px; font-size: 12px; cursor: pointer;
+    border: 1px solid var(--panel-border); background: transparent; color: var(--muted);
+  }
+  .cat.active { background: var(--leaf); color: #04140d; border-color: var(--leaf); font-weight: 600; }
+  .grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); }
+  .product {
+    background: rgba(255,255,255,0.03); border: 1px solid var(--panel-border);
+    border-radius: 16px; padding: 14px; display: flex; flex-direction: column;
+    transition: transform .2s, border-color .2s;
+  }
+  .product:hover { transform: translateY(-3px); border-color: rgba(91,227,143,0.4); }
+  .p-emoji {
+    font-size: 40px; height: 72px; display: grid; place-items: center;
+    background: rgba(91,227,143,0.08); border-radius: 12px; margin-bottom: 10px;
+  }
+  .p-name { font-size: 14px; font-weight: 600; line-height: 1.35; min-height: 38px; word-break: break-word; }
+  .p-meta { font-size: 11px; color: var(--muted); margin-top: 4px; }
+  .p-bottom { margin-top: auto; display: flex; justify-content: space-between; align-items: center; padding-top: 12px; }
+  .p-price { font-weight: 700; font-variant-numeric: tabular-nums; }
+  .add-btn {
+    padding: 7px 12px; border-radius: 10px; border: none; cursor: pointer;
+    background: var(--leaf); color: #04140d; font-size: 12px; font-weight: 700;
+    transition: background .2s;
+  }
+  .add-btn.added { background: var(--gold); }
+  .empty { grid-column: 1 / -1; text-align: center; color: var(--muted); padding: 30px 0; font-size: 14px; }
+
+  /* Custom item form */
+  .custom {
+    margin-bottom: 18px; padding: 16px; border-radius: 16px;
+    background: rgba(255,211,107,0.05); border: 1px dashed rgba(255,211,107,0.35);
+  }
+  .custom h2 { margin: 0 0 12px; font-size: 13px; text-transform: uppercase; letter-spacing: 1.6px; color: var(--gold); font-weight: 600; }
+  .custom-row { display: grid; gap: 8px; grid-template-columns: 74px 2fr 1fr 110px auto; align-items: center; }
+  @media (max-width: 760px) { .custom-row { grid-template-columns: 1fr 1fr; } }
+  .custom input, .custom select {
+    width: 100%; padding: 10px 12px; border-radius: 12px;
+    border: 1px solid var(--panel-border); background: rgba(0,0,0,0.25);
+    color: var(--text); font-size: 14px; outline: none; font-family: inherit;
+  }
+  .custom select { font-size: 20px; padding: 6px; text-align: center; cursor: pointer; }
+  .custom input:focus, .custom select:focus { border-color: var(--gold); }
+  .custom input[type=number]::-webkit-outer-spin-button,
+  .custom input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  .custom input[type=number] { -moz-appearance: textfield; appearance : textfield; }
+  .custom-add {
+    padding: 10px 16px; border-radius: 12px; border: none; cursor: pointer;
+    background: var(--gold); color: #2a1a00; font-size: 14px; font-weight: 700; white-space: nowrap;
+  }
+  .custom-add:hover { filter: brightness(1.05); }
+  .custom-err { min-height: 18px; margin-top: 8px; font-size: 12px; color: var(--danger); }
+
+  /* Cart */
+  .layout { display: grid; grid-template-columns: 1fr 340px; gap: 22px; align-items: start; }
+  @media (max-width: 860px) { .layout { grid-template-columns: 1fr; } }
+  .line {
+    display: flex; align-items: center; gap: 14px; padding: 14px;
+    border-radius: 16px; margin-bottom: 10px; background: rgba(255,255,255,0.03);
+  }
+  .line .emoji {
+    font-size: 26px; width: 52px; height: 52px; display: grid; place-items: center;
+    border-radius: 14px; background: rgba(91,227,143,0.1); flex-shrink: 0;
+  }
+  .line .info { flex: 1; min-width: 0; }
+  .line .name { font-size: 14px; font-weight: 600; word-break: break-word; }
+  .line .unit { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .qty { display: flex; align-items: center; gap: 6px; }
+  .qty button {
+    width: 30px; height: 30px; border-radius: 9px; border: 1px solid var(--panel-border);
+    background: transparent; color: var(--text); cursor: pointer; font-size: 15px;
+  }
+  .qty span { min-width: 22px; text-align: center; font-size: 14px; }
+  .line-total { font-weight: 700; min-width: 80px; text-align: right; font-variant-numeric: tabular-nums; }
+  .remove { background: none; border: none; color: var(--danger); cursor: pointer; font-size: 18px; padding: 4px 6px; }
+  .cart-empty { text-align: center; color: var(--muted); padding: 40px 0; font-size: 14px; }
+  .cart-empty a { color: var(--leaf); cursor: pointer; text-decoration: underline; }
+
+  .offset { padding: 16px; border-radius: 16px; background: rgba(91,227,143,0.06); border: 1px solid rgba(91,227,143,0.25); }
+  .offset-top { display: flex; justify-content: space-between; align-items: baseline; }
+  .offset-top strong { font-size: 14px; }
+  .offset-amount { font-size: 20px; font-weight: 700; color: var(--leaf); font-variant-numeric: tabular-nums; }
+  .offset-desc { font-size: 12px; color: var(--muted); margin: 6px 0 12px; line-height: 1.5; }
+  input[type=range] { width: 100%; accent-color: var(--leaf); cursor: pointer; }
+  .offset-switch { margin-top: 8px; font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 8px; cursor: pointer; }
+
+  .row { display: flex; justify-content: space-between; font-size: 14px; padding: 7px 0; color: var(--muted); }
+  .row b { color: var(--text); font-variant-numeric: tabular-nums; }
+  .row.total { border-top: 1px dashed var(--panel-border); margin-top: 6px; padding-top: 12px; font-size: 16px; color: var(--text); }
+  .row.total b { font-size: 20px; }
+
+  .coin-btn {
+    width: 100%; margin-top: 12px; padding: 12px; border-radius: 14px;
+    background: transparent; border: 1px solid rgba(255,211,107,0.45);
+    color: var(--gold); font-size: 14px; font-weight: 600; cursor: pointer;
+  }
+  .coin-btn.on { background: linear-gradient(135deg, #ffd36b, #f3a93a); color: #2a1a00; border-color: transparent; }
+  .coin-btn:disabled { opacity: .35; cursor: not-allowed; }
+  .pay {
+    width: 100%; margin-top: 12px; padding: 15px; border: none; border-radius: 16px;
+    background: linear-gradient(135deg, var(--leaf), var(--leaf-dim));
+    color: #04140d; font-size: 16px; font-weight: 700; cursor: pointer;
+    box-shadow: 0 10px 30px rgba(91,227,143,0.25);
+  }
+  .pay:disabled { opacity: .4; cursor: not-allowed; box-shadow: none; }
+
+  .tree-box { display: flex; flex-direction: column; align-items: center; padding-top: 18px; }
+  .tree { font-size: 52px; transition: transform .8s cubic-bezier(.2,.8,.2,1); }
+  .tree-stage { font-size: 12px; color: var(--muted); margin-top: 4px; }
+  .impact { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; width: 100%; }
+  .impact div { padding: 10px; border-radius: 12px; background: rgba(255,255,255,0.03); text-align: center; }
+  .impact b { display: block; font-size: 16px; color: var(--leaf); }
+  .impact span { font-size: 11px; color: var(--muted); }
+
+  .receipt {
+    margin-top: 16px; padding: 16px; border-radius: 16px; display: none;
+    background: rgba(91,227,143,0.1); border: 1px solid var(--leaf); font-size: 14px; line-height: 1.7;
+  }
+  .receipt.show { display: block; }
+
+  .history { list-style: none; padding: 0; margin: 0; max-height: 150px; overflow-y: auto; }
+  .history li { display: flex; justify-content: space-between; font-size: 12px; padding: 7px 0; border-bottom: 1px solid var(--panel-border); }
+  .history .plus { color: var(--leaf); }
+  .history .minus { color: var(--danger); }
+
+  .particle { position: fixed; pointer-events: none; z-index: 9; font-size: 18px; animation: burst 1s ease-out forwards; }
+  @keyframes burst { to { transform: translate(var(--dx), var(--dy)) rotate(360deg); opacity: 0; } }
+  .toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(120px);
+    background: #103524; border: 1px solid var(--leaf); padding: 12px 18px; border-radius: 14px;
+    font-size: 14px; transition: transform .4s cubic-bezier(.2,.8,.2,1); z-index: 10;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <div class="brand-mark">🌿</div>
+      <div>
+        <h1>Green Checkout</h1>
+        <p>Carbon-neutral delivery · Eco-Coin Grove</p>
+      </div>
+    </div>
+    <div style="display:flex; gap:10px; flex-wrap:wrap">
+      <button class="nav-btn ghost" id="navShop">🛍️ Shop</button>
+      <button class="nav-btn" id="navCart">🛒 Cart <span class="badge" id="cartCount">0</span></button>
+    </div>
+  </header>
+
+  <!-- SHOP VIEW -->
+  <section class="view active" id="shopView">
+    <section class="panel">
+      <h2>Shop</h2>
+
+      <div class="custom">
+        <h2>Add any item</h2>
+        <div class="custom-row">
+          <select id="cEmoji" title="Icon">
+            <option value="🛒">🛒</option>
+            <option value="📦">📦</option>
+            <option value="🎁">🎁</option>
+            <option value="🥕">🥕</option>
+            <option value="🍎">🍎</option>
+            <option value="🥛">🥛</option>
+            <option value="💊">💊</option>
+            <option value="🧻">🧻</option>
+            <option value="🪑">🪑</option>
+            <option value="💡">💡</option>
+            <option value="📱">📱</option>
+            <option value="👜">👜</option>
+            <option value="🧸">🧸</option>
+            <option value="🎨">🎨</option>
+            <option value="🔧">🔧</option>
+          </select>
+          <input id="cName" type="text" placeholder="Item name" maxlength="60">
+          <input id="cCat" type="text" placeholder="Category (optional)" maxlength="24">
+          <input id="cPrice" type="number" min="0.01" step="any" placeholder="Price ₹">
+          <button class="custom-add" id="cAdd">+ Add to cart</button>
+        </div>
+        <div class="custom-err" id="cErr"></div>
+      </div>
+
+      <input class="search" id="search" type="search" placeholder="Search products, brands, or tags…">
+      <div class="cats" id="cats"></div>
+      <div class="grid" id="grid"></div>
+    </section>
+  </section>
+
+  <!-- CART VIEW -->
+  <section class="view" id="cartView">
+    <div class="layout">
+      <section class="panel">
+        <h2>Your items</h2>
+        <div id="lines"></div>
+      </section>
+
+      <aside class="panel">
+        <h2>Summary</h2>
+        <div class="offset">
+          <div class="offset-top">
+            <strong>Carbon-neutral delivery</strong>
+            <span class="offset-amount" id="offsetAmount">₹3</span>
+          </div>
+          <div class="offset-desc" id="offsetDesc"></div>
+          <input type="range" id="offsetSlider" min="2" max="5" step="1" value="3">
+          <label class="offset-switch">
+            <input type="checkbox" id="offsetToggle" checked> Include carbon offset
+          </label>
+        </div>
+
+        <div style="margin-top:16px">
+          <div class="row"><span>Items</span><b id="itemsTotal">₹0</b></div>
+          <div class="row"><span>Carbon offset</span><b id="addonTotal">₹0</b></div>
+          <div class="row"><span>Eco-Coins applied</span><b id="coinsApplied">₹0</b></div>
+          <div class="row total"><span>Pay now</span><b id="cashTotal">₹0</b></div>
+        </div>
+
+        <button class="coin-btn" id="useCoins">Use my Eco-Coins</button>
+        <button class="pay" id="payBtn" disabled>Place order</button>
+        <div class="receipt" id="receipt"></div>
+
+        <div class="tree-box">
+          <div class="tree" id="tree">🌱</div>
+          <div class="tree-stage" id="treeStage">Seedling · start your grove</div>
+          <div class="impact">
+            <div><b id="co2">0 kg</b><span>CO₂ offset</span></div>
+            <div><b id="trees">0</b><span>Tree-days equiv.</span></div>
+          </div>
+        </div>
+
+        <h2 style="margin-top:20px">Activity</h2>
+        <ul class="history" id="history"><li><span>No activity yet</span></li></ul>
+      </aside>
+    </div>
+  </section>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  const CONFIG = {
+    billbackRate: 0.05,       // 5% of cash paid returns as Eco-Coins
+    co2PerRupee: 0.12,        // illustrative placeholder
+    treeDaysPerKg: 1 / 0.06,  // illustrative placeholder
+    maxPrice: 1000000,        // upper limit for custom items
+  };
+
+  const CATALOG = [
+    { id: "p1",  emoji: "👕", name: "Organic Cotton T-Shirt",  category: "Fashion",     price: 599,  tags: "clothing shirt tee cotton" },
+    { id: "p2",  emoji: "👟", name: "Recycled Running Shoes",  category: "Fashion",     price: 2499, tags: "shoes sneakers footwear" },
+    { id: "p3",  emoji: "🧴", name: "Steel Water Bottle",      category: "Home",        price: 450,  tags: "bottle steel reusable" },
+    { id: "p4",  emoji: "🪥", name: "Bamboo Toothbrush Pack",  category: "Personal",    price: 180,  tags: "toothbrush bamboo dental" },
+    { id: "p5",  emoji: "🛍️", name: "Jute Tote Bag",           category: "Home",        price: 249,  tags: "bag tote jute shopping" },
+    { id: "p6",  emoji: "🪴", name: "Indoor Money Plant",      category: "Garden",      price: 329,  tags: "plant indoor pot green" },
+    { id: "p7",  emoji: "🍫", name: "Dark Chocolate 70%",      category: "Food",        price: 220,  tags: "chocolate snack sweet cocoa" },
+    { id: "p8",  emoji: "🧼", name: "Plastic-free Dish Soap",  category: "Home",        price: 175,  tags: "soap cleaning dish refill" },
+    { id: "p9",  emoji: "🎧", name: "Refurbished Earbuds",     category: "Electronics", price: 1299, tags: "audio headphones earbuds refurbished" },
+    { id: "p10", emoji: "📓", name: "Recycled Paper Notebook", category: "Stationery",  price: 149,  tags: "notebook paper diary journal" },
+    { id: "p11", emoji: "🥣", name: "Bamboo Cutlery Set",      category: "Home",        price: 299,  tags: "cutlery spoon fork kitchen" },
+    { id: "p12", emoji: "🧘", name: "Cork Yoga Mat",           category: "Fitness",     price: 1799, tags: "yoga mat fitness exercise" },
+  ];
+
+  const STAGES = [
+    { min: 0, icon: "🌱", label: "Seedling · start your grove" },
+    { min: 1, icon: "🌿", label: "Sapling · growing well" },
+    { min: 3, icon: "🌳", label: "Young tree · nice work" },
+    { min: 6, icon: "🌲", label: "Grove keeper · you're on a roll" },
+  ];
+
+  // In-memory state (works in any browser or preview, resets on refresh)
+  const state = {
+    cart: [],            // [{ id, qty }]
+    category: "All",
+    query: "",
+    offsetOn: true,
+    offset: 3,
+    wallet: 0,
+    useCoins: false,
+    orders: 0,
+    totalCo2: 0,
+    history: [],
+    customCount: 0,
+  };
+
+  const $ = id => document.getElementById(id);
+  const fmt = n => "₹" + (Math.round(n * 100) / 100).toLocaleString("en-IN");
+  const productById = id => CATALOG.find(p => p.id === id);
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+  }[c]));
+
+  function cartLines() {
+    return state.cart.map(l => ({ ...productById(l.id), qty: l.qty }));
+  }
+
+  function totals() {
+    const items = cartLines().reduce((s, l) => s + l.price * l.qty, 0);
+    const offset = state.offsetOn && items > 0 ? state.offset : 0;
+    const due = items + offset;
+    const coinsApplied = state.useCoins ? Math.min(state.wallet, due) : 0;
+    const cashPay = due - coinsApplied;
+    const earned = +(cashPay * CONFIG.billbackRate).toFixed(2);
+    return { items, offset, due, coinsApplied, cashPay, earned };
+  }
+
+  /* ---------- Views ---------- */
+  function showView(name) {
+    $("shopView").classList.toggle("active", name === "shop");
+    $("cartView").classList.toggle("active", name === "cart");
+    $("navShop").classList.toggle("ghost", name !== "shop");
+    $("navCart").classList.toggle("ghost", name !== "cart");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  /* ---------- Shop ---------- */
+  function renderCategories() {
+    const cats = ["All", ...new Set(CATALOG.map(p => p.category))];
+    $("cats").innerHTML = cats.map(c =>
+      `<button class="cat ${c === state.category ? "active" : ""}" data-cat="${esc(c)}">${esc(c)}</button>`
+    ).join("");
+  }
+
+  function renderGrid() {
+    const q = state.query.trim().toLowerCase();
+    const list = CATALOG.filter(p =>
+      (state.category === "All" || p.category === state.category) &&
+      (!q || `${p.name} ${p.category} ${p.tags}`.toLowerCase().includes(q))
+    );
+    $("grid").innerHTML = list.length ? list.map(p => `
+      <div class="product">
+        <div class="p-emoji">${p.emoji}</div>
+        <div class="p-name">${esc(p.name)}</div>
+        <div class="p-meta">${esc(p.category)}</div>
+        <div class="p-bottom">
+          <span class="p-price">${fmt(p.price)}</span>
+          <button class="add-btn" data-add="${esc(p.id)}">Add</button>
+        </div>
+      </div>`).join("")
+      : `<div class="empty">No products match "${esc(state.query)}".</div>`;
+  }
+
+  function addToCart(id, btn) {
+    const line = state.cart.find(l => l.id === id);
+    if (line) line.qty += 1;
+    else state.cart.push({ id, qty: 1 });
+
+    // Update only the cart-related parts, so the clicked button stays in the DOM
+    renderLines();
+    renderOffset();
+    renderSummary();
+    renderTree();
+
+    if (btn) {
+      btn.classList.add("added");
+      btn.textContent = "Added";
+      setTimeout(() => { btn.classList.remove("added"); btn.textContent = "Add"; }, 900);
+    }
+    toast(`Added ${productById(id).name} 🌿`);
+  }
+
+  function showCustomError(msg) {
+    $("cErr").textContent = msg;
+  }
+
+  function addCustomItem() {
+    const name = $("cName").value.trim();
+    const price = Math.round(Number($("cPrice").value) * 100) / 100; // round before validating
+    const category = $("cCat").value.trim() || "Custom";
+    const emoji = $("cEmoji").value;
+
+    if (!name) return showCustomError("Please enter an item name.");
+    if (!(price > 0)) return showCustomError("Please enter a price of at least ₹0.01.");
+    if (price > CONFIG.maxPrice) return showCustomError(`Price can't exceed ${fmt(CONFIG.maxPrice)}.`);
+
+    state.customCount += 1;
+    const id = "c" + state.customCount + "_" + Date.now().toString(36);
+    CATALOG.push({
+      id,
+      emoji,
+      name,
+      category,
+      price,
+      tags: (name + " " + category + " custom").toLowerCase(),
+    });
+
+    $("cName").value = "";
+    $("cCat").value = "";
+    $("cPrice").value = "";
+    $("cErr").textContent = "";
+    $("cName").focus();
+
+    // Show the new item in the shop right away
+    renderCategories();
+    renderGrid();
+
+    addToCart(id);
+  }
+
+  /* ---------- Cart ---------- */
+  function renderLines() {
+    const lines = cartLines();
+    $("lines").innerHTML = lines.length ? lines.map(l => `
+      <div class="line">
+        <div class="emoji">${l.emoji}</div>
+        <div class="info">
+          <div class="name">${esc(l.name)}</div>
+          <div class="unit">${fmt(l.price)} each</div>
+        </div>
+        <div class="qty">
+          <button data-id="${esc(l.id)}" data-d="-1">−</button>
+          <span>${l.qty}</span>
+          <button data-id="${esc(l.id)}" data-d="1">+</button>
+        </div>
+        <div class="line-total">${fmt(l.price * l.qty)}</div>
+        <button class="remove" data-remove="${esc(l.id)}" title="Remove">✕</button>
+      </div>`).join("")
+      : `<div class="cart-empty">Your cart is empty.<br><a id="goShop">Go shopping →</a></div>`;
+  }
+
+  function renderOffset() {
+    $("offsetSlider").value = state.offset;
+    $("offsetAmount").textContent = fmt(state.offset);
+    $("offsetToggle").checked = state.offsetOn;
+    $("offsetSlider").disabled = !state.offsetOn;
+    $("offsetDesc").textContent = state.offsetOn
+      ? `Offsets roughly ${(state.offset * CONFIG.co2PerRupee).toFixed(2)} kg CO₂ from your delivery.`
+      : "Carbon offset is off for this order.";
+  }
+
+  function renderSummary() {
+    const t = totals();
+    $("itemsTotal").textContent = fmt(t.items);
+    $("addonTotal").textContent = fmt(t.offset);
+    $("coinsApplied").textContent = t.coinsApplied > 0 ? "−" + fmt(t.coinsApplied) : "₹0";
+    $("cashTotal").textContent = fmt(t.cashPay);
+
+    const btn = $("useCoins");
+    btn.textContent = state.useCoins ? "✓ Eco-Coins applied" : `Use my Eco-Coins (${fmt(state.wallet)})`;
+    btn.classList.toggle("on", state.useCoins);
+    btn.disabled = state.wallet <= 0;
+
+    $("payBtn").disabled = t.items <= 0;
+  }
+
+  function renderTree() {
+    const stage = [...STAGES].reverse().find(s => state.orders >= s.min) || STAGES[0];
+    $("tree").textContent = stage.icon;
+    $("tree").style.transform = `scale(${1 + Math.min(state.orders, 6) * 0.06})`;
+    $("treeStage").textContent = stage.label;
+    $("co2").textContent = state.totalCo2.toFixed(2) + " kg";
+    $("trees").textContent = Math.round(state.totalCo2 * CONFIG.treeDaysPerKg);
+    $("cartCount").textContent = state.cart.reduce((n, l) => n + l.qty, 0);
+  }
+
+  function renderHistory() {
+    if (!state.history.length) return;
+    $("history").innerHTML = state.history.map(h =>
+      `<li><span>${esc(h.label)}</span><span class="${h.cls}">${esc(h.amount)}</span></li>`).join("");
+  }
+
+  function renderAll() {
+    renderCategories();
+    renderGrid();
+    renderLines();
+    renderOffset();
+    renderSummary();
+    renderTree();
+    renderHistory();
+  }
+
+  /* ---------- Feedback ---------- */
+  function toast(msg) {
+    const t = $("toast");
+    t.textContent = msg;
+    t.classList.add("show");
+    clearTimeout(toast._h);
+    toast._h = setTimeout(() => t.classList.remove("show"), 2200);
+  }
+
+  function burstCoins(count = 14) {
+    const rect = $("payBtn").getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    for (let i = 0; i < count; i++) {
+      const p = document.createElement("div");
+      p.className = "particle";
+      p.textContent = Math.random() > 0.4 ? "🪙" : "🍃";
+      p.style.left = cx + "px";
+      p.style.top = cy + "px";
+      p.style.setProperty("--dx", (Math.random() - 0.5) * 320 + "px");
+      p.style.setProperty("--dy", -(80 + Math.random() * 220) + "px");
+      document.body.appendChild(p);
+      setTimeout(() => p.remove(), 1000);
+    }
+  }
+
+  /* ---------- Events ---------- */
+  $("navShop").addEventListener("click", () => showView("shop"));
+  $("navCart").addEventListener("click", () => showView("cart"));
+
+  $("cAdd").addEventListener("click", addCustomItem);
+  ["cName", "cCat", "cPrice"].forEach(id => {
+    $(id).addEventListener("keydown", e => {
+      if (e.key === "Enter") addCustomItem();
+    });
+  });
+  // Clear the error as soon as the user starts editing the form
+  ["cName", "cCat", "cPrice"].forEach(id => {
+    $(id).addEventListener("input", () => showCustomError(""));
+  });
+
+  $("cats").addEventListener("click", e => {
+    const b = e.target.closest("[data-cat]");
+    if (!b) return;
+    state.category = b.dataset.cat;
+    renderCategories();
+    renderGrid();
+  });
+
+  $("search").addEventListener("input", e => {
+    state.query = e.target.value;
+    renderGrid();
+  });
+
+  $("grid").addEventListener("click", e => {
+    const b = e.target.closest("[data-add]");
+    if (b) addToCart(b.dataset.add, b);
+  });
+
+  $("lines").addEventListener("click", e => {
+    if (e.target.closest("#goShop")) return showView("shop");
+    const rm = e.target.closest("[data-remove]");
+    const q = e.target.closest("[data-id]");
+    if (rm) {
+      state.cart = state.cart.filter(l => l.id !== rm.dataset.remove);
+    } else if (q) {
+      const line = state.cart.find(l => l.id === q.dataset.id);
+      if (line) line.qty += Number(q.dataset.d);
+      state.cart = state.cart.filter(l => l.qty > 0);
+    } else return;
+    renderAll();
+  });
+
+  $("offsetSlider").addEventListener("input", e => {
+    state.offset = Number(e.target.value);
+    renderOffset();
+    renderSummary();
+  });
+
+  $("offsetToggle").addEventListener("change", e => {
+    state.offsetOn = e.target.checked;
+    renderOffset();
+    renderSummary();
+  });
+
+  $("useCoins").addEventListener("click", () => {
+    state.useCoins = !state.useCoins;
+    renderSummary();
+  });
+
+  $("payBtn").addEventListener("click", () => {
+    const t = totals();
+    if (t.items <= 0) return;
+
+    state.wallet = +(state.wallet - t.coinsApplied + t.earned).toFixed(2);
+    state.orders += 1;
+    if (state.offsetOn) state.totalCo2 += state.offset * CONFIG.co2PerRupee;
+
+    if (t.coinsApplied > 0) state.history.unshift({ label: "Coins redeemed", amount: "−" + fmt(t.coinsApplied), cls: "minus" });
+    state.history.unshift({ label: "Order placed", amount: "−" + fmt(t.cashPay), cls: "minus" });
+    state.history.unshift({ label: "Eco-Coins earned", amount: "+" + fmt(t.earned), cls: "plus" });
+
+    const r = $("receipt");
+    r.innerHTML = `
+      <strong>Order confirmed 🌿</strong><br>
+      Cash paid: ${fmt(t.cashPay)}<br>
+      Carbon offset: ${fmt(t.offset)}<br>
+      Eco-Coins earned: ${fmt(t.earned)}<br>
+      Coin balance: ${fmt(state.wallet)}`;
+    r.classList.add("show");
+
+    burstCoins();
+    toast(`Order placed! You earned ${fmt(t.earned)} in Eco-Coins`);
+
+    state.cart = [];
+    state.useCoins = false;
+    renderAll();
+  });
+
+  renderAll();
+</script>
+</body>
+</html>
