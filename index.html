@@ -113,7 +113,7 @@
   .custom input:focus, .custom select:focus { border-color: var(--gold); }
   .custom input[type=number]::-webkit-outer-spin-button,
   .custom input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-  .custom input[type=number] { -moz-appearance: textfield; appearance : textfield; }
+  .custom input[type=number] { -moz-appearance: textfield; appearance : textfield;}
   .custom-add {
     padding: 10px 16px; border-radius: 12px; border: none; cursor: pointer;
     background: var(--gold); color: #2a1a00; font-size: 14px; font-weight: 700; white-space: nowrap;
@@ -149,13 +149,13 @@
   .offset { padding: 16px; border-radius: 16px; background: rgba(91,227,143,0.06); border: 1px solid rgba(91,227,143,0.25); }
   .offset-top { display: flex; justify-content: space-between; align-items: baseline; }
   .offset-top strong { font-size: 14px; }
-  .offset-amount { font-size: 20px; font-weight: 700; color: var(--leaf); font-variant-numeric: tabular-nums; }
+  .offset-amount { font-size: 14px; font-weight: 700; color: var(--leaf); font-variant-numeric: tabular-nums; }
   .offset-desc { font-size: 12px; color: var(--muted); margin: 6px 0 12px; line-height: 1.5; }
-  input[type=range] { width: 100%; accent-color: var(--leaf); cursor: pointer; }
   .offset-switch { margin-top: 8px; font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 8px; cursor: pointer; }
 
   .row { display: flex; justify-content: space-between; font-size: 14px; padding: 7px 0; color: var(--muted); }
   .row b { color: var(--text); font-variant-numeric: tabular-nums; }
+  .row.earn b { color: var(--leaf); }
   .row.total { border-top: 1px dashed var(--panel-border); margin-top: 6px; padding-top: 12px; font-size: 16px; color: var(--text); }
   .row.total b { font-size: 20px; }
 
@@ -271,10 +271,9 @@
         <div class="offset">
           <div class="offset-top">
             <strong>Carbon-neutral delivery</strong>
-            <span class="offset-amount" id="offsetAmount">₹3</span>
+            <span class="offset-amount" id="offsetAmount">₹1 / ₹100</span>
           </div>
           <div class="offset-desc" id="offsetDesc"></div>
-          <input type="range" id="offsetSlider" min="2" max="5" step="1" value="3">
           <label class="offset-switch">
             <input type="checkbox" id="offsetToggle" checked> Include carbon offset
           </label>
@@ -283,8 +282,9 @@
         <div style="margin-top:16px">
           <div class="row"><span>Items</span><b id="itemsTotal">₹0</b></div>
           <div class="row"><span>Carbon offset</span><b id="addonTotal">₹0</b></div>
-          <div class="row"><span>Eco-Coins applied</span><b id="coinsApplied">₹0</b></div>
+          <div class="row"><span>Eco-Coins applied</span><b id="coinsApplied">0 coins</b></div>
           <div class="row total"><span>Pay now</span><b id="cashTotal">₹0</b></div>
+          <div class="row earn"><span>Eco-Coins you'll earn</span><b id="earnPreview">+0 coins</b></div>
         </div>
 
         <button class="coin-btn" id="useCoins">Use my Eco-Coins</button>
@@ -311,7 +311,8 @@
 
 <script>
   const CONFIG = {
-    billbackRate: 0.05,       // 5% of cash paid returns as Eco-Coins
+    offsetPer100: 1,          // carbon offset ₹1 for every ₹100 of items
+    coinsPerRupee: 10,        // 1 rupee = 10 Eco-Coins (1 coin = ₹0.10)
     co2PerRupee: 0.12,        // illustrative placeholder
     treeDaysPerKg: 1 / 0.06,  // illustrative placeholder
     maxPrice: 1000000,        // upper limit for custom items
@@ -345,8 +346,7 @@
     category: "All",
     query: "",
     offsetOn: true,
-    offset: 3,
-    wallet: 0,
+    wallet: 0,           // Eco-Coins balance (in coins)
     useCoins: false,
     orders: 0,
     totalCo2: 0,
@@ -356,6 +356,7 @@
 
   const $ = id => document.getElementById(id);
   const fmt = n => "₹" + (Math.round(n * 100) / 100).toLocaleString("en-IN");
+  const fmtCoin = n => (Math.round(n * 100) / 100).toLocaleString("en-IN") + " coins";
   const productById = id => CATALOG.find(p => p.id === id);
   const esc = s => String(s).replace(/[&<>"']/g, c => ({
     "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
@@ -365,14 +366,30 @@
     return state.cart.map(l => ({ ...productById(l.id), qty: l.qty }));
   }
 
+  function totalQty() {
+    return state.cart.reduce((n, l) => n + l.qty, 0);
+  }
+
   function totals() {
     const items = cartLines().reduce((s, l) => s + l.price * l.qty, 0);
-    const offset = state.offsetOn && items > 0 ? state.offset : 0;
-    const due = items + offset;
-    const coinsApplied = state.useCoins ? Math.min(state.wallet, due) : 0;
-    const cashPay = due - coinsApplied;
-    const earned = +(cashPay * CONFIG.billbackRate).toFixed(2);
-    return { items, offset, due, coinsApplied, cashPay, earned };
+
+    // Offset: ₹1 for every ₹100 of items (₹1500 → ₹15)
+    const offset = state.offsetOn && items > 0
+      ? +(items * CONFIG.offsetPer100 / 100).toFixed(2)
+      : 0;
+
+    const due = items + offset; // amount in ₹ before coins
+
+    // Coins are converted to rupees: 10 coins = ₹1
+    const maxCoinsForBill = Math.floor(due * CONFIG.coinsPerRupee);
+    const coinsApplied = state.useCoins ? Math.min(state.wallet, maxCoinsForBill) : 0;
+    const coinDiscount = coinsApplied / CONFIG.coinsPerRupee; // ₹ value of coins used
+    const cashPay = due - coinDiscount;
+
+    // Earn 10 coins per ₹1 of offset paid (₹15 offset → 150 coins)
+    const earned = +(offset * CONFIG.coinsPerRupee).toFixed(2);
+
+    return { items, offset, due, coinsApplied, coinDiscount, cashPay, earned };
   }
 
   /* ---------- Views ---------- */
@@ -490,24 +507,27 @@
   }
 
   function renderOffset() {
-    $("offsetSlider").value = state.offset;
-    $("offsetAmount").textContent = fmt(state.offset);
     $("offsetToggle").checked = state.offsetOn;
-    $("offsetSlider").disabled = !state.offsetOn;
     $("offsetDesc").textContent = state.offsetOn
-      ? `Offsets roughly ${(state.offset * CONFIG.co2PerRupee).toFixed(2)} kg CO₂ from your delivery.`
-      : "Carbon offset is off for this order.";
+      ? `${fmt(CONFIG.offsetPer100)} offset for every ₹100 of items. You earn ${CONFIG.coinsPerRupee} coins per ₹1 offset.`
+      : "Carbon offset is off. No Eco-Coins are earned on this order.";
+    $("offsetAmount").textContent = `${fmt(CONFIG.offsetPer100)} / ₹100`;
   }
 
   function renderSummary() {
     const t = totals();
     $("itemsTotal").textContent = fmt(t.items);
     $("addonTotal").textContent = fmt(t.offset);
-    $("coinsApplied").textContent = t.coinsApplied > 0 ? "−" + fmt(t.coinsApplied) : "₹0";
+    $("coinsApplied").textContent = t.coinsApplied > 0
+      ? `−${fmtCoin(t.coinsApplied)} (${fmt(t.coinDiscount)})`
+      : "0 coins";
     $("cashTotal").textContent = fmt(t.cashPay);
+    $("earnPreview").textContent = "+" + fmtCoin(t.earned);
 
     const btn = $("useCoins");
-    btn.textContent = state.useCoins ? "✓ Eco-Coins applied" : `Use my Eco-Coins (${fmt(state.wallet)})`;
+    btn.textContent = state.useCoins
+      ? "✓ Eco-Coins applied"
+      : `Use my Eco-Coins (${fmtCoin(state.wallet)} = ${fmt(state.wallet / CONFIG.coinsPerRupee)})`;
     btn.classList.toggle("on", state.useCoins);
     btn.disabled = state.wallet <= 0;
 
@@ -521,7 +541,7 @@
     $("treeStage").textContent = stage.label;
     $("co2").textContent = state.totalCo2.toFixed(2) + " kg";
     $("trees").textContent = Math.round(state.totalCo2 * CONFIG.treeDaysPerKg);
-    $("cartCount").textContent = state.cart.reduce((n, l) => n + l.qty, 0);
+    $("cartCount").textContent = totalQty();
   }
 
   function renderHistory() {
@@ -613,12 +633,6 @@
     renderAll();
   });
 
-  $("offsetSlider").addEventListener("input", e => {
-    state.offset = Number(e.target.value);
-    renderOffset();
-    renderSummary();
-  });
-
   $("offsetToggle").addEventListener("change", e => {
     state.offsetOn = e.target.checked;
     renderOffset();
@@ -636,23 +650,25 @@
 
     state.wallet = +(state.wallet - t.coinsApplied + t.earned).toFixed(2);
     state.orders += 1;
-    if (state.offsetOn) state.totalCo2 += state.offset * CONFIG.co2PerRupee;
+    state.totalCo2 += t.offset * CONFIG.co2PerRupee;
 
-    if (t.coinsApplied > 0) state.history.unshift({ label: "Coins redeemed", amount: "−" + fmt(t.coinsApplied), cls: "minus" });
+    if (t.coinsApplied > 0) state.history.unshift({ label: "Coins redeemed", amount: "−" + fmtCoin(t.coinsApplied), cls: "minus" });
     state.history.unshift({ label: "Order placed", amount: "−" + fmt(t.cashPay), cls: "minus" });
-    state.history.unshift({ label: "Eco-Coins earned", amount: "+" + fmt(t.earned), cls: "plus" });
+    state.history.unshift({ label: "Eco-Coins earned", amount: "+" + fmtCoin(t.earned), cls: "plus" });
 
     const r = $("receipt");
     r.innerHTML = `
       <strong>Order confirmed 🌿</strong><br>
-      Cash paid: ${fmt(t.cashPay)}<br>
+      Items: ${fmt(t.items)}<br>
       Carbon offset: ${fmt(t.offset)}<br>
-      Eco-Coins earned: ${fmt(t.earned)}<br>
-      Coin balance: ${fmt(state.wallet)}`;
+      Coins redeemed: ${fmtCoin(t.coinsApplied)} (${fmt(t.coinDiscount)})<br>
+      Cash paid: ${fmt(t.cashPay)}<br>
+      Eco-Coins earned: ${fmtCoin(t.earned)}<br>
+      Coin balance: ${fmtCoin(state.wallet)}`;
     r.classList.add("show");
 
     burstCoins();
-    toast(`Order placed! You earned ${fmt(t.earned)} in Eco-Coins`);
+    toast(`Order placed! You earned ${fmtCoin(t.earned)}`);
 
     state.cart = [];
     state.useCoins = false;
